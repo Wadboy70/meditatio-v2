@@ -35,8 +35,7 @@ meditatio/
 ├── context/                  # React context providers (reserved)
 ├── lib/                      # Third-party client setup (Supabase, etc.)
 ├── constants/
-│   ├── tokens.ts             # Colors, radii, spacing, section palette
-│   └── Colors.ts             # Legacy Expo template (deprecated for new UI)
+│   └── tokens.ts             # Colors, radii, spacing, section palette
 ├── assets/                   # Images, fonts
 ├── global.css
 ├── tailwind.config.js        # Token-mapped Tailwind theme (sync with tokens.ts)
@@ -93,8 +92,6 @@ Source of truth: [`constants/tokens.ts`](constants/tokens.ts)
 - **Radii / spacing / shadow / typography** — for StyleSheet and layout constants
 - **Tailwind:** `tailwind.config.js` mirrors token values as utility classes (`bg-surface`, `text-primary`, `rounded-xl`, etc.)
 - **Theme:** Light mode only for MVP
-
-Legacy `constants/Colors.ts` remains for unused Expo template components; new code uses tokens.
 
 ## Styling (NativeWind)
 
