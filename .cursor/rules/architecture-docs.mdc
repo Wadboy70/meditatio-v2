@@ -1,0 +1,35 @@
+---
+description: Read and keep ARCHITECTURE.md in sync around major structural changes
+alwaysApply: true
+---
+
+# Architecture documentation
+
+`ARCHITECTURE.md` is the source of truth for project structure, navigation, integrations, and conventions.
+
+## Before you start (read first)
+
+**Before making any structural change, read `ARCHITECTURE.md` first.** Do this at the start of the task, before writing code, whenever the work involves:
+
+- Adding, removing, or moving top-level folders (`app/`, `components/`, `context/`, `lib/`, `hooks/`, etc.)
+- Navigation changes (new route groups, tabs, stacks, auth flows)
+- New third-party integrations (auth, database, analytics, payments)
+- Changes to env vars, build config, or styling setup (NativeWind, Metro, Babel)
+- Significant convention shifts (state management, API patterns)
+
+Use it to follow existing conventions and placement rules instead of inventing new ones. If your planned change conflicts with the documented architecture, reconcile it (or flag it) rather than silently diverging.
+
+## After the change (keep in sync)
+
+After any **major change** above, update `ARCHITECTURE.md` in the same session before finishing:
+
+1. Bump the `Last updated` date at the top
+2. Revise the folder tree and navigation diagram if routes changed
+3. Add/remove rows in tech stack, env vars, or extension-point tables
+4. Keep it concise — architecture overview, not a changelog
+
+Do **not** read-gate or update for minor bug fixes, copy tweaks, or single-component refactors that don't change structure.
+
+## If unsure
+
+When the change is borderline, read `ARCHITECTURE.md` and update it anyway. Stale or unread docs are worse than a little extra diligence.

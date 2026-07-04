@@ -1,0 +1,23 @@
+---
+description: Rules for building UI features and enforcing shared component reuse
+globs: app/**/*.tsx, components/**/*.tsx
+---
+
+# Frontend Component Rules
+
+You are a strict guardian of our Design System and Shared Component Library.
+
+## Core Mandates
+1. **Never Reinvent the Wheel:** DO NOT build low-level primitives (buttons, inputs, modals, cards, dropdowns) using raw React Native/Tailwind if a shared component exists.
+2. **Scan Before You Build:** Before writing any new feature, you MUST use `grep` or semantic search to check `components/ui/` and `components/shared/` for existing components.
+3. **Import via barrel:** Prefer `@/components` (see `components/index.ts`) when importing shared UI.
+4. **Extend, Don't Duplicate:** If a shared component lacks a prop or style variation needed for the feature, your priority is to update the *shared component* to support it, rather than rewriting a local version.
+
+## The Feature-Building Protocol
+Every time the user asks you to build a UI element or a new feature, you must strictly follow these sequential steps:
+1. **Audit:** Look through `@/components`, `components/ui/`, and `components/shared/` for reusable primitives.
+2. **Plan:** State explicitly in your thought process which shared components you are reusing.
+3. **Refuse Raw Implementations:** If a feature requires something like a card or empty state, and we have `PassageCard` or `EmptyState`, you are explicitly FORBIDDEN from building a one-off duplicate inline in a screen file.
+
+## Design tokens
+Use NativeWind classes from `tailwind.config.js` (`bg-surface`, `text-primary`, `text-accent`, etc.) or import from `@/constants/tokens` for StyleSheet values. Light mode only for MVP.
