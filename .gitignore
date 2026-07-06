@@ -40,3 +40,8 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# bible extraction script (local EPUB + venv + generated data)
+scripts/data/*.epub
+scripts/.venv/
+assets/bible/*.sqlite

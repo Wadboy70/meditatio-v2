@@ -1,6 +1,6 @@
 # Meditatio — Architecture
 
-> Last updated: 2026-07-03
+> Last updated: 2026-07-05
 
 Scripture memorization app built with Expo, React Native, TypeScript, and NativeWind. Optional Supabase integration is stubbed but disabled until credentials are provided.
 
@@ -33,10 +33,20 @@ meditatio/
 │       ├── PassageCard.tsx
 │       └── EmptyState.tsx
 ├── context/                  # React context providers (reserved)
-├── lib/                      # Third-party client setup (Supabase, etc.)
+├── lib/
+│   ├── bible/                # BibleTextService + LocalSqliteProvider
+│   └── supabase.ts           # Supabase client (optional)
 ├── constants/
 │   └── tokens.ts             # Colors, radii, spacing, section palette
-├── assets/                   # Images, fonts
+├── assets/
+│   ├── bible/                # Generated translation DBs (gitignored *.sqlite)
+│   │   └── .gitkeep
+│   └── …                     # Images, fonts
+├── scripts/                  # One-time data tooling (not app runtime)
+│   ├── extract_bible_epub.py # EPUB → {translationId}.sqlite
+│   ├── book_ids.py           # 66-book slug map
+│   ├── requirements.txt      # Python deps (use scripts/.venv/)
+│   └── data/                 # Source EPUB (gitignored)
 ├── global.css
 ├── tailwind.config.js        # Token-mapped Tailwind theme (sync with tokens.ts)
 └── .env                      # Local secrets (gitignored)
@@ -138,7 +148,8 @@ Client lives in `lib/supabase.ts`.
 | Feature | Suggested location |
 |---------|-------------------|
 | Passage CRUD + local storage | `lib/storage/`, `hooks/usePassages.ts` |
-| Bible text provider | `lib/bible/BibleTextService.ts`, `lib/bible/providers/` |
+| Bible text provider | `lib/bible/BibleTextService.ts`, `lib/bible/providers/LocalSqliteProvider.ts` |
+| Bundled Bible data | `assets/bible/{translationId}.sqlite` (generated via `npm run bible:extract`, gitignored) |
 | Memorization task flow | `app/passage/` route group |
 | Section colors assignment | Use `sectionColors` from tokens |
 | User auth / cloud sync | `context/AuthContext.tsx`, Supabase |
