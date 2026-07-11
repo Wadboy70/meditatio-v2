@@ -148,7 +148,7 @@ Client lives in `lib/supabase.ts`.
 | Feature | Suggested location |
 |---------|-------------------|
 | Passage CRUD + local storage | `lib/storage/`, `hooks/usePassages.ts` |
-| Bible text provider | `lib/bible/BibleTextService.ts`, `lib/bible/providers/LocalSqliteProvider.ts` |
+| Bible text provider | `lib/bible/BibleTextService.ts`, `lib/bible/providers/LocalSqliteProvider` (`.native` / `.web`) |
 | Bundled Bible data | `assets/bible/{translationId}.sqlite` (generated via `npm run bible:extract`, gitignored) |
 | Memorization task flow | `app/passage/` route group |
 | Section colors assignment | Use `sectionColors` from tokens |
