@@ -22,4 +22,8 @@ export class LocalSqliteProvider implements BibleProvider {
   ): Promise<Verse[]> {
     return [];
   }
+
+  async getChapterCount(_translationId: string, _bookId: string): Promise<number> {
+    return 0;
+  }
 }

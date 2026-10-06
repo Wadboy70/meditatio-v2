@@ -1,6 +1,6 @@
 # Meditatio — Architecture
 
-> Last updated: 2026-07-05
+> Last updated: 2026-07-10
 
 Scripture memorization app built with Expo, React Native, TypeScript, and NativeWind. Optional Supabase integration is stubbed but disabled until credentials are provided.
 
@@ -21,20 +21,31 @@ Scripture memorization app built with Expo, React Native, TypeScript, and Native
 meditatio/
 ├── app/                      # Screens & navigation (Expo Router)
 │   ├── _layout.tsx           # Root stack, fonts, splash screen
-│   └── (tabs)/               # Bottom tab navigator
-│       ├── _layout.tsx       # Floating tab bar (Home, Profile)
-│       ├── index.tsx         # Home — saved passages list
-│       └── profile.tsx       # Profile tab
+│   ├── (tabs)/               # Bottom tab navigator
+│   │   ├── _layout.tsx       # Floating tab bar (Home, Profile)
+│   │   ├── index.tsx         # Home — saved passages list
+│   │   └── profile.tsx       # Profile tab
+│   └── passage/              # Passage selection flow
+│       ├── _layout.tsx
+│       ├── new.tsx           # Translation picker
+│       └── reader.tsx        # Infinite-scroll reader + verse multi-select
 ├── components/
 │   ├── index.ts              # Root barrel — import shared UI via @/components
 │   ├── ui/                   # Design system primitives (placeholder)
 │   └── shared/               # Composite components
 │       ├── FloatingTabBar.tsx
 │       ├── PassageCard.tsx
-│       └── EmptyState.tsx
+│       ├── EmptyState.tsx
+│       ├── BibleReader.tsx
+│       ├── BookChapterModal.tsx
+│       ├── VerseBlock.tsx
+│       └── SelectionConfirmBar.tsx
 ├── context/                  # React context providers (reserved)
+├── hooks/
+│   └── usePassages.ts        # Load/create local passages
 ├── lib/
-│   ├── bible/                # BibleTextService + LocalSqliteProvider
+│   ├── bible/                # BibleTextService, books, translations, SQLite provider
+│   ├── storage/              # AsyncStorage Passage + PassageVerse snapshots
 │   └── supabase.ts           # Supabase client (optional)
 ├── constants/
 │   └── tokens.ts             # Colors, radii, spacing, section palette
@@ -58,9 +69,12 @@ Expo Router maps the filesystem under `app/` to routes.
 
 ```
 app/_layout.tsx          → Root Stack
-  └── (tabs)/_layout.tsx → Bottom tabs (custom FloatingTabBar)
-        ├── index        → /          (Home — passages list)
-        └── profile      → /profile   (Profile)
+  ├── (tabs)/_layout.tsx → Bottom tabs (custom FloatingTabBar)
+  │     ├── index        → /          (Home — passages list)
+  │     └── profile      → /profile   (Profile)
+  └── passage/           → Passage selection stack
+        ├── new          → /passage/new     (translation)
+        └── reader       → /passage/reader  (Bible reader)
 ```
 
 - **Initial route:** `(tabs)` (see `unstable_settings` in `app/_layout.tsx`)
@@ -72,13 +86,20 @@ app/_layout.tsx          → Root Stack
 
 Per the [Meditatio Spec](https://docs.google.com/document/d/1yog0U4SkrWwxtr_vdeyp98xp82PQVG2HRROi7mbgXdE/edit), the home screen lists saved passages with in-progress vs completed states.
 
-**Current setup phase:**
-- `PassageCard` displays title, reference, status badge, and progress hint
-- `EmptyState` for zero-passage UI
-- Placeholder sample data in `app/(tabs)/index.tsx` (no local storage yet)
-- "Start a passage" shows a coming-soon alert until the memorization flow is built
+**Current:**
+- Loads passages from AsyncStorage via `hooks/usePassages.ts`
+- `PassageCard` + `EmptyState`; CTA opens `/passage/new`
+- Card press for continue/memorization is still deferred
 
-**Deferred:** SQLite/AsyncStorage, `Passage` entity CRUD, Bible picker, memorization task flow.
+## Passage selection
+
+Flow: translation → infinite-scroll Bible reader → multi-verse select → persist `Passage` + `PassageVerse` snapshots.
+
+- **Bible text:** `lib/bible/` (`BibleTextService` → SQLite `LocalSqliteProvider` on native)
+- **User passages:** `lib/storage/` (AsyncStorage). `PassageVerse` is the source of truth for selected verses; Passage `start*`/`end*` are bounding-span metadata only
+- **Reader UI:** `app/passage/reader.tsx` with `BibleReader`, `BookChapterModal`, `VerseBlock`, `SelectionConfirmBar`
+
+**Deferred:** divide/name sections, section tasks, WordToken/Acronym, KJV data, passage resume.
 
 ## Component library
 
@@ -89,6 +110,10 @@ Import shared UI from `@/components` (barrel at `components/index.ts`).
 | `FloatingTabBar` | `components/shared/` | Floating rounded bottom navigation |
 | `PassageCard` | `components/shared/` | Passage list item on home screen |
 | `EmptyState` | `components/shared/` | Reusable empty list placeholder |
+| `BibleReader` | `components/shared/` | Infinite-scroll chapter reader |
+| `BookChapterModal` | `components/shared/` | Book / chapter jump overlay |
+| `VerseBlock` | `components/shared/` | Selectable verse row |
+| `SelectionConfirmBar` | `components/shared/` | Create-passage confirm bar |
 | Primitives (future) | `components/ui/` | Button, Badge, Input, etc. |
 
 Before building new UI, audit `components/ui/` and `components/shared/`. See `.cursor/rules/frontend.mdc`.
@@ -147,10 +172,11 @@ Client lives in `lib/supabase.ts`.
 
 | Feature | Suggested location |
 |---------|-------------------|
-| Passage CRUD + local storage | `lib/storage/`, `hooks/usePassages.ts` |
+| Passage CRUD + local storage | `lib/storage/`, `hooks/usePassages.ts` (AsyncStorage; implemented for create/list) |
 | Bible text provider | `lib/bible/BibleTextService.ts`, `lib/bible/providers/LocalSqliteProvider` (`.native` / `.web`) |
 | Bundled Bible data | `assets/bible/{translationId}.sqlite` (generated via `npm run bible:extract`, gitignored) |
-| Memorization task flow | `app/passage/` route group |
+| Passage selection reader | `app/passage/` (translation + reader; implemented) |
+| Memorization task flow | `app/passage/` continue screens (divide sections → tasks) |
 | Section colors assignment | Use `sectionColors` from tokens |
 | User auth / cloud sync | `context/AuthContext.tsx`, Supabase |
 | User settings | `app/(tabs)/profile.tsx` |

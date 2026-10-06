@@ -31,6 +31,10 @@ export class BibleTextService {
   ): Promise<Verse[]> {
     return this.provider.getChapterVerses(translationId, bookId, chapter, startVerse, endVerse);
   }
+
+  getChapterCount(translationId: string, bookId: string): Promise<number> {
+    return this.provider.getChapterCount(translationId, bookId);
+  }
 }
 
 /** Shared singleton for app use. */

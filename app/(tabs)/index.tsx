@@ -1,45 +1,38 @@
-import { Alert, ScrollView, Text, View } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback } from 'react';
+import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmptyState, PassageCard } from '@/components';
 import { layout, sectionColors } from '@/constants/tokens';
+import { usePassages } from '@/hooks/usePassages';
+import { getBook } from '@/lib/bible/books';
+import { getTranslation } from '@/lib/bible/translations';
 
-/** Dev placeholders — replace with local storage in a future phase */
-const PLACEHOLDER_PASSAGES = [
-  {
-    id: '1',
-    title: 'God So Loved the World',
-    reference: 'John 3:16–21',
-    status: 'in_progress' as const,
-    progressHint: 'Section 2 · Word recall',
-    sectionColor: sectionColors[0],
-  },
-  {
-    id: '2',
-    title: 'The Lord Is My Shepherd',
-    reference: 'Psalm 23:1–6',
-    status: 'completed' as const,
-    updatedAt: 'Jul 1, 2026',
-    sectionColor: sectionColors[2],
-  },
-  {
-    id: '3',
-    title: 'Love Is Patient',
-    reference: '1 Corinthians 13:4–7',
-    status: 'in_progress' as const,
-    progressHint: 'Section 1 · Read section',
-    sectionColor: sectionColors[1],
-  },
-];
-
-const SHOW_PLACEHOLDER_DATA = true;
-
-function handleStartPassage() {
-  Alert.alert('Coming soon', 'Passage creation will be available in the next phase.');
+function taskHint(currentTaskId: string): string {
+  switch (currentTaskId) {
+    case 'divide_sections':
+      return 'Next: Divide into sections';
+    case 'name_sections':
+      return 'Next: Name sections';
+    default:
+      return 'In progress';
+  }
 }
 
 export default function HomeScreen() {
-  const passages = SHOW_PLACEHOLDER_DATA ? PLACEHOLDER_PASSAGES : [];
+  const router = useRouter();
+  const { passages, loading, refresh } = usePassages();
+
+  useFocusEffect(
+    useCallback(() => {
+      void refresh();
+    }, [refresh]),
+  );
+
+  const handleStartPassage = () => {
+    router.push('/passage/new');
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
@@ -54,7 +47,7 @@ export default function HomeScreen() {
           </Text>
         </View>
 
-        {passages.length === 0 ? (
+        {!loading && passages.length === 0 ? (
           <EmptyState
             title="No passages yet"
             description="Start your first memorization journey by selecting a Bible passage."
@@ -65,24 +58,41 @@ export default function HomeScreen() {
           <>
             <View className="mb-4 flex-row items-center justify-between">
               <Text className="text-lg font-semibold text-primary">My Passages</Text>
-              <Text className="text-xs font-medium text-secondary">Sample data</Text>
+              <Pressable onPress={handleStartPassage}>
+                <Text className="text-sm font-semibold text-accent">New</Text>
+              </Pressable>
             </View>
-            {passages.map((passage) => (
-              <PassageCard
-                key={passage.id}
-                title={passage.title}
-                reference={passage.reference}
-                status={passage.status}
-                progressHint={passage.progressHint}
-                updatedAt={passage.updatedAt}
-                sectionColor={passage.sectionColor}
-                onPress={handleStartPassage}
-              />
-            ))}
-            <View className="mt-6">
+            {passages.map((passage, index) => {
+              const book = getBook(passage.bookId);
+              const translation = getTranslation(passage.translationId);
+
+              return (
+                <PassageCard
+                  key={passage.id}
+                  title={passage.title || `${book?.name ?? passage.bookId}`}
+                  reference={translation?.abbreviation ?? passage.translationId.toUpperCase()}
+                  status={passage.status}
+                  progressHint={
+                    passage.status === 'in_progress'
+                      ? taskHint(passage.currentTaskId)
+                      : undefined
+                  }
+                  updatedAt={
+                    passage.status === 'completed'
+                      ? new Date(passage.updatedAt).toLocaleDateString()
+                      : undefined
+                  }
+                  sectionColor={sectionColors[index % sectionColors.length]}
+                  onPress={() =>
+                    Alert.alert('Coming soon', 'Continue memorization will be available next.')
+                  }
+                />
+              );
+            })}
+            <View className="mt-2">
               <EmptyState
                 title="Ready for more?"
-                description="Add another passage when memorization setup is available."
+                description="Add another passage whenever you want to keep growing."
                 actionLabel="Start a passage"
                 onAction={handleStartPassage}
               />

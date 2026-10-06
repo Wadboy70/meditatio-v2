@@ -22,4 +22,5 @@ export type BibleProvider = {
     startVerse?: number,
     endVerse?: number,
   ): Promise<Verse[]>;
+  getChapterCount(translationId: string, bookId: string): Promise<number>;
 };

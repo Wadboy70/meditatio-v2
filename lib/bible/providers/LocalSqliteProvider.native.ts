@@ -7,6 +7,7 @@ import {
 } from 'expo-file-system/legacy';
 import * as SQLite from 'expo-sqlite';
 
+import { getChapterCount as getStaticChapterCount } from '../books';
 import type { BibleProvider, Verse, VerseRef } from '../types';
 
 /** Bundled translation databases — add entries as new translations are extracted. */
@@ -122,5 +123,19 @@ export class LocalSqliteProvider implements BibleProvider {
 
     const rows = await db.getAllAsync<VerseRow>(sql, params);
     return rows.map(rowToVerse);
+  }
+
+  async getChapterCount(translationId: string, bookId: string): Promise<number> {
+    const db = await this.openDatabase(translationId);
+    const row = await db.getFirstAsync<{ max_chapter: number | null }>(
+      `SELECT MAX(chapter) AS max_chapter
+       FROM verses
+       WHERE translation_id = ? AND book_id = ?`,
+      [translationId, bookId],
+    );
+    if (row?.max_chapter) {
+      return row.max_chapter;
+    }
+    return getStaticChapterCount(bookId);
   }
 }

@@ -5,6 +5,10 @@
  * - FloatingTabBar — floating rounded bottom navigation
  * - PassageCard — home screen passage list item
  * - EmptyState — reusable empty list placeholder
+ * - BibleReader — infinite-scroll chapter reader
+ * - BookChapterModal — book/chapter jump overlay
+ * - VerseBlock — selectable verse row
+ * - SelectionConfirmBar — create-passage confirm bar
  *
  * Before building new UI, audit components/ui/ and components/shared/.
  * See .cursor/rules/frontend.mdc
