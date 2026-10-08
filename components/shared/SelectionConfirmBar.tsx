@@ -7,6 +7,10 @@ export type SelectionConfirmBarProps = {
   count: number;
   referencePreview?: string;
   loading?: boolean;
+  confirmLabel?: string;
+  countLabel?: string;
+  /** When true, show the bar even if count is 0 (e.g. Continue after all assigned). */
+  alwaysVisible?: boolean;
   onConfirm: () => void;
 };
 
@@ -14,11 +18,17 @@ export function SelectionConfirmBar({
   count,
   referencePreview,
   loading = false,
+  confirmLabel = 'Create passage',
+  countLabel,
+  alwaysVisible = false,
   onConfirm,
 }: SelectionConfirmBarProps) {
   const insets = useSafeAreaInsets();
 
-  if (count <= 0) return null;
+  if (!alwaysVisible && count <= 0) return null;
+
+  const primaryLabel =
+    countLabel ?? `${count} verse${count === 1 ? '' : 's'} selected`;
 
   return (
     <View
@@ -29,9 +39,7 @@ export function SelectionConfirmBar({
       }}>
       <View className="flex-row items-center justify-between gap-3">
         <View className="flex-1">
-          <Text className="text-sm font-semibold text-primary">
-            {count} verse{count === 1 ? '' : 's'} selected
-          </Text>
+          <Text className="text-sm font-semibold text-primary">{primaryLabel}</Text>
           {referencePreview ? (
             <Text className="mt-0.5 text-xs text-secondary" numberOfLines={1}>
               {referencePreview}
@@ -46,7 +54,7 @@ export function SelectionConfirmBar({
           {loading ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
-            <Text className="text-sm font-semibold text-white">Create passage</Text>
+            <Text className="text-sm font-semibold text-white">{confirmLabel}</Text>
           )}
         </Pressable>
       </View>

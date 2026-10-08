@@ -32,7 +32,35 @@ export type PassageVerse = {
   text: string;
 };
 
+export type SectionStatus = 'in_progress' | 'completed';
+
+export type Section = {
+  id: string;
+  passageId: string;
+  title: string;
+  order: number;
+  colorKey: number;
+  status: SectionStatus;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
+};
+
+export type SectionVerse = {
+  id: string;
+  sectionId: string;
+  passageVerseId: string;
+  order: number;
+};
+
+/** Input for persisting a section: ordered passage-verse ids. */
+export type SectionDraft = {
+  passageVerseIds: string[];
+};
+
 export type PassageRecord = {
   passage: Passage;
   verses: PassageVerse[];
+  sections: Section[];
+  sectionVerses: SectionVerse[];
 };
