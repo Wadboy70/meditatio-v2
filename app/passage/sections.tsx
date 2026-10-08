@@ -10,10 +10,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PassageVerseList, SelectionConfirmBar } from '@/components';
-import { colors, sectionColorMuted, sectionColors } from '@/constants/tokens';
+import { colors, sectionColorMuted } from '@/constants/tokens';
 import { usePassages } from '@/hooks/usePassages';
 import {
+  canOpenDivideScreen,
+  canToggleVerseOrder,
   formatPassageReference,
+  nextSectionColorKey,
   verseRefKey,
   type PassageRecord,
   type PassageVerse,
@@ -25,15 +28,6 @@ type DraftSection = {
   passageVerseIds: string[];
   colorKey: number;
 };
-
-function isContiguousOrders(orders: number[]): boolean {
-  if (orders.length <= 1) return true;
-  const sorted = [...orders].sort((a, b) => a - b);
-  for (let i = 1; i < sorted.length; i += 1) {
-    if (sorted[i] !== sorted[i - 1] + 1) return false;
-  }
-  return true;
-}
 
 function refsFromPassageVerses(
   bookId: string,
@@ -81,11 +75,12 @@ export default function DivideSectionsScreen() {
           ]);
           return;
         }
-        if (next.passage.currentTaskId !== 'divide_sections') {
-          router.replace('/(tabs)');
-          return;
-        }
-        if (next.verses.length <= 2) {
+        if (
+          !canOpenDivideScreen({
+            currentTaskId: next.passage.currentTaskId,
+            verseCount: next.verses.length,
+          })
+        ) {
           router.replace('/(tabs)');
           return;
         }
@@ -172,45 +167,44 @@ export default function DivideSectionsScreen() {
     (passageVerseId: string) => {
       if (!record) return;
 
-      if (assignedIds.has(passageVerseId)) {
-        Alert.alert(
-          'Already in a section',
-          'Undo the last section if you want to reassign these verses.',
-        );
-        return;
-      }
-
       const verse = verseById.get(passageVerseId);
       if (!verse) return;
 
-      setDraftSelection((prev) => {
-        if (prev.includes(passageVerseId)) {
-          return prev.filter((id) => id !== passageVerseId);
-        }
+      const assigned = assignedIds.has(passageVerseId);
+      const selectedOrders = draftSelection
+        .map((id) => verseById.get(id)?.order)
+        .filter((order): order is number => order !== undefined);
 
-        const nextIds = [...prev, passageVerseId];
-        const orders = nextIds
-          .map((id) => verseById.get(id)?.order)
-          .filter((order): order is number => order !== undefined);
+      if (draftSelection.includes(passageVerseId)) {
+        setDraftSelection((prev) => prev.filter((id) => id !== passageVerseId));
+        return;
+      }
 
-        if (!isContiguousOrders(orders)) {
+      const result = canToggleVerseOrder(selectedOrders, verse.order, assigned);
+      if (!result.ok) {
+        if (result.reason === 'assigned') {
+          Alert.alert(
+            'Already in a section',
+            'Undo the last section if you want to reassign these verses.',
+          );
+        } else {
           Alert.alert(
             'Select contiguous verses',
             'Sections must be a continuous group of verses in the passage.',
           );
-          return prev;
         }
+        return;
+      }
 
-        return nextIds;
-      });
+      setDraftSelection((prev) => [...prev, passageVerseId]);
     },
-    [assignedIds, record, verseById],
+    [assignedIds, draftSelection, record, verseById],
   );
 
   const handleAddSection = useCallback(() => {
     if (draftSelection.length === 0) return;
 
-    const colorKey = draftSections.length % sectionColors.length;
+    const colorKey = nextSectionColorKey(draftSections.length);
     const orderedIds = [...draftSelection].sort((a, b) => {
       const aOrder = verseById.get(a)?.order ?? 0;
       const bOrder = verseById.get(b)?.order ?? 0;
