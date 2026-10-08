@@ -86,6 +86,8 @@ Do **not** chat-attach the EPUB (large binary; poor fit for Cloud Agent uploads)
 
 Direct download URLs on bible.org can move, and automated `curl` may get **403 Forbidden**. If that happens, open [bible.org/downloads](https://bible.org/downloads) in a browser, save the NET 2.1 EPUB, and place it at `scripts/data/NETBIBLE21.epub` (or use remote desktop in the cloud VM to download once).
 
+**Cloud fallback:** if bible.org blocks download, the importer also accepts the eBible NET EPUB (`https://eBible.org/epub/engnet.epub`) saved as `scripts/data/NETBIBLE21.epub` — same import command.
+
 ## Supported source formats
 
 | Format | Typical use |
