@@ -9,6 +9,21 @@ npm install
 npx expo start
 ```
 
+### Test on a physical phone (tunnel)
+
+LAN mode only works when your phone and machine share a network. From a Cloud Agent VM (or any remote host), use tunnel mode instead:
+
+```bash
+npm run start:tunnel
+# equivalent: npx expo start --tunnel
+```
+
+1. Install **Expo Go** on your phone (SDK 57 for this project).
+2. Scan the QR code Expo prints (iOS Camera app, or Expo Go → Scan QR on Android).
+3. Keep the terminal session running while you test.
+
+Requires `@expo/ngrok` (already in dependencies). Tunnel URLs look like `*.exp.direct`.
+
 ## Bible data (local / cloud)
 
 Translation databases are generated locally and **not** committed to git. Import them before the first native run.

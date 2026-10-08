@@ -218,6 +218,9 @@ Client lives in `lib/supabase.ts`.
 ```bash
 npm install
 # Import Bible DBs first (see scripts/README.md) — required before native runs
-npx expo start          # dev server
+npx expo start          # dev server (LAN — phone must share Wi‑Fi)
+npm run start:tunnel    # tunnel via @expo/ngrok (Cloud Agent / remote / phone on other network)
 npx expo start --clear  # clear Metro cache (after NativeWind/config changes)
 ```
+
+Cloud Agents are not on your LAN — use `npm run start:tunnel`, then scan the QR code in Expo Go.
