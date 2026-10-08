@@ -23,8 +23,8 @@ export type ToggleVerseOrderResult =
   | { ok: false; reason: 'assigned' | 'non_contiguous' };
 
 /**
- * Whether adding `candidateOrder` to the current selection is allowed.
- * Removing a selected order is always allowed (caller handles removal).
+ * Whether toggling `candidateOrder` in/out of the current selection keeps
+ * a contiguous run. End removals are allowed; middle removals are not.
  */
 export function canToggleVerseOrder(
   selectedOrders: number[],
@@ -36,6 +36,10 @@ export function canToggleVerseOrder(
   }
 
   if (selectedOrders.includes(candidateOrder)) {
+    const remaining = selectedOrders.filter((order) => order !== candidateOrder);
+    if (!isContiguousOrders(remaining)) {
+      return { ok: false, reason: 'non_contiguous' };
+    }
     return { ok: true };
   }
 

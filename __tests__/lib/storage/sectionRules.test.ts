@@ -67,8 +67,16 @@ describe('canToggleVerseOrder', () => {
     });
   });
 
-  it('allows removing a currently selected order', () => {
-    expect(canToggleVerseOrder([0, 1], 1, false)).toEqual({ ok: true });
+  it('allows removing from either end of the selection', () => {
+    expect(canToggleVerseOrder([0, 1, 2], 0, false)).toEqual({ ok: true });
+    expect(canToggleVerseOrder([0, 1, 2], 2, false)).toEqual({ ok: true });
+  });
+
+  it('rejects removing a middle verse that would create a gap', () => {
+    expect(canToggleVerseOrder([0, 1, 2], 1, false)).toEqual({
+      ok: false,
+      reason: 'non_contiguous',
+    });
   });
 
   it('allows growing the selection at either end', () => {

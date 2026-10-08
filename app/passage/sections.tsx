@@ -175,11 +175,6 @@ export default function DivideSectionsScreen() {
         .map((id) => verseById.get(id)?.order)
         .filter((order): order is number => order !== undefined);
 
-      if (draftSelection.includes(passageVerseId)) {
-        setDraftSelection((prev) => prev.filter((id) => id !== passageVerseId));
-        return;
-      }
-
       const result = canToggleVerseOrder(selectedOrders, verse.order, assigned);
       if (!result.ok) {
         if (result.reason === 'assigned') {
@@ -190,13 +185,17 @@ export default function DivideSectionsScreen() {
         } else {
           Alert.alert(
             'Select contiguous verses',
-            'Sections must be a continuous group of verses in the passage.',
+            'Sections must stay a continuous group. Unselect from either end, or clear and reselect.',
           );
         }
         return;
       }
 
-      setDraftSelection((prev) => [...prev, passageVerseId]);
+      setDraftSelection((prev) =>
+        prev.includes(passageVerseId)
+          ? prev.filter((id) => id !== passageVerseId)
+          : [...prev, passageVerseId],
+      );
     },
     [assignedIds, draftSelection, record, verseById],
   );
