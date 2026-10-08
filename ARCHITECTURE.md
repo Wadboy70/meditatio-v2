@@ -14,6 +14,7 @@ Scripture memorization app built with Expo, React Native, TypeScript, and Native
 | Styling | NativeWind v4 + Tailwind CSS v3, design tokens in `constants/tokens.ts` |
 | Backend (optional) | Supabase (`@supabase/supabase-js`) — disabled without env keys |
 | Path aliases | `@/*` → project root (`tsconfig.json`) |
+| Unit tests | jest-expo (`npm test` / `npm run test:ci`) |
 
 ## High-level layout
 
@@ -47,8 +48,9 @@ meditatio/
 │   └── usePassages.ts        # Load/create/update local passages
 ├── lib/
 │   ├── bible/                # BibleTextService, books, translations, SQLite provider
-│   ├── storage/              # AsyncStorage Passage, PassageVerse, Section snapshots
+│   ├── storage/              # AsyncStorage Passage, PassageVerse, Section snapshots + sectionRules
 │   └── supabase.ts           # Supabase client (optional)
+├── __tests__/lib/            # Domain unit tests (storage, bible, tokens)
 ├── constants/
 │   └── tokens.ts             # Colors, radii, spacing, section palette
 ├── assets/
@@ -182,6 +184,25 @@ Client lives in `lib/supabase.ts`.
 - **External service clients** go in `lib/`
 - **Expo docs:** [Expo SDK 57 docs](https://docs.expo.dev/versions/v57.0.0/)
 
+## Testing
+
+Business/domain logic is covered by jest-expo unit tests under `__tests__/lib/`.
+
+```bash
+npm test          # local
+npm run test:ci   # CI (no watch)
+```
+
+| Area | Tests |
+|------|-------|
+| Reference formatting / keys | `__tests__/lib/storage/reference.test.ts` |
+| Section chunking rules | `__tests__/lib/storage/sectionRules.test.ts` |
+| Passage persistence | `__tests__/lib/storage/passageStore.test.ts` (AsyncStorage + bible mocks) |
+| Bible catalog / service | `__tests__/lib/bible/*.test.ts` |
+| Section color helper | `__tests__/lib/tokens/sectionColorMuted.test.ts` |
+
+Pure section rules live in `lib/storage/sectionRules.ts` and are shared by the store and divide-sections screen. UI/component tests are out of scope for this suite.
+
 ## Planned extension points
 
 | Feature | Suggested location |
@@ -202,4 +223,5 @@ Client lives in `lib/supabase.ts`.
 npm install
 npx expo start          # dev server
 npx expo start --clear  # clear Metro cache (after NativeWind/config changes)
+npm test                # unit tests
 ```

@@ -11,7 +11,8 @@ function compareRefs(a: VerseSelectionRef, b: VerseSelectionRef): number {
   return a.verse - b.verse;
 }
 
-function isContiguous(sorted: VerseSelectionRef[]): boolean {
+/** Whether sorted same-book refs form a contiguous chapter/verse run (for titles). */
+export function isContiguous(sorted: VerseSelectionRef[]): boolean {
   if (sorted.length <= 1) return true;
 
   for (let i = 1; i < sorted.length; i += 1) {

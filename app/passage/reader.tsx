@@ -12,6 +12,7 @@ import { usePassages } from '@/hooks/usePassages';
 import { getBook, type ChapterLocation } from '@/lib/bible/books';
 import {
   formatPassageReference,
+  routeAfterCreate,
   verseRefKey,
   type VerseSelectionRef,
 } from '@/lib/storage';
@@ -86,7 +87,7 @@ export default function PassageReaderScreen() {
     setCreating(true);
     try {
       const record = await createFromSelection(translationId, selectionBookId, selection);
-      if (record.passage.currentTaskId === 'divide_sections') {
+      if (routeAfterCreate(record.passage.currentTaskId) === 'sections') {
         router.replace({
           pathname: '/passage/sections',
           params: { passageId: record.passage.id },

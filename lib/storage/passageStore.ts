@@ -1,8 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { sectionColors } from '@/constants/tokens';
 import { bibleTextService } from '@/lib/bible/BibleTextService';
 import { bibleVerseId, formatPassageReference, verseRefKey } from '@/lib/storage/reference';
+import {
+  nextSectionColorKey,
+  shouldSkipDivide,
+  taskIdAfterCreate,
+  validateSectionDrafts,
+} from '@/lib/storage/sectionRules';
 import type {
   Passage,
   PassageRecord,
@@ -128,7 +133,7 @@ export async function createPassageFromVerseRefs(
   const first = orderedRefs[0];
   const last = orderedRefs[orderedRefs.length - 1];
   const title = formatPassageReference(orderedRefs);
-  const skipDivide = orderedRefs.length <= 2;
+  const skipDivide = shouldSkipDivide(orderedRefs.length);
 
   const passage: Passage = {
     id: passageId,
@@ -140,7 +145,7 @@ export async function createPassageFromVerseRefs(
     endVerse: last.verse,
     title,
     status: 'in_progress',
-    currentTaskId: skipDivide ? 'name_sections' : 'divide_sections',
+    currentTaskId: taskIdAfterCreate(orderedRefs.length),
     createdAt: now,
     updatedAt: now,
   };
@@ -186,10 +191,6 @@ export async function savePassageSections(
   passageId: string,
   drafts: SectionDraft[],
 ): Promise<PassageRecord> {
-  if (drafts.length === 0) {
-    throw new Error('Add at least one section before continuing.');
-  }
-
   const records = await readAll();
   const index = records.findIndex((record) => record.passage.id === passageId);
   if (index < 0) {
@@ -197,39 +198,9 @@ export async function savePassageSections(
   }
 
   const existing = records[index];
+  validateSectionDrafts(existing.verses, drafts);
+
   const verseById = new Map(existing.verses.map((verse) => [verse.id, verse]));
-  const assigned = new Set<string>();
-
-  for (const draft of drafts) {
-    if (draft.passageVerseIds.length === 0) {
-      throw new Error('Each section must contain at least one verse.');
-    }
-
-    const orders: number[] = [];
-    for (const passageVerseId of draft.passageVerseIds) {
-      const verse = verseById.get(passageVerseId);
-      if (!verse) {
-        throw new Error(`Passage verse not found: ${passageVerseId}`);
-      }
-      if (assigned.has(passageVerseId)) {
-        throw new Error('A verse can only belong to one section.');
-      }
-      assigned.add(passageVerseId);
-      orders.push(verse.order);
-    }
-
-    const sortedOrders = [...orders].sort((a, b) => a - b);
-    for (let i = 1; i < sortedOrders.length; i += 1) {
-      if (sortedOrders[i] !== sortedOrders[i - 1] + 1) {
-        throw new Error('Section verses must be contiguous in the passage.');
-      }
-    }
-  }
-
-  if (assigned.size !== existing.verses.length) {
-    throw new Error('Every verse in the passage must be assigned to a section.');
-  }
-
   const now = new Date().toISOString();
   const sections: Section[] = [];
   const sectionVerses: SectionVerse[] = [];
@@ -242,7 +213,7 @@ export async function savePassageSections(
       passageId,
       orderedVerses,
       draftIndex,
-      draftIndex % sectionColors.length,
+      nextSectionColorKey(draftIndex),
       now,
     );
     sections.push(built.section);

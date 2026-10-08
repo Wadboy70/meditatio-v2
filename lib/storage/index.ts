@@ -14,4 +14,20 @@ export {
   listPassages,
   savePassageSections,
 } from './passageStore';
-export { formatPassageReference, verseRefKey } from './reference';
+export {
+  bibleVerseId,
+  formatPassageReference,
+  isContiguous,
+  verseRefKey,
+} from './reference';
+export {
+  canOpenDivideScreen,
+  canToggleVerseOrder,
+  isContiguousOrders,
+  nextSectionColorKey,
+  routeAfterCreate,
+  shouldSkipDivide,
+  taskIdAfterCreate,
+  validateSectionDrafts,
+  type ToggleVerseOrderResult,
+} from './sectionRules';
