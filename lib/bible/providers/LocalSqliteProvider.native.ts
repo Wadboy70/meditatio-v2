@@ -10,9 +10,10 @@ import * as SQLite from 'expo-sqlite';
 import { getChapterCount as getStaticChapterCount } from '../books';
 import type { BibleProvider, Verse, VerseRef } from '../types';
 
-/** Bundled translation databases — add entries as new translations are extracted. */
+/** Bundled translation databases — generate via `npm run bible:import:*` before native runs. */
 const TRANSLATION_ASSETS: Record<string, number> = {
   net: require('@/assets/bible/net.sqlite'),
+  kjv: require('@/assets/bible/kjv.sqlite'),
 };
 
 const DEVICE_BIBLE_DIR = `${documentDirectory}bible/`;

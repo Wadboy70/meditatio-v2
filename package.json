@@ -39,7 +39,10 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "bible:extract": "cd scripts && .venv/bin/python extract_bible_epub.py --epub data/NETBIBLE21.epub --translation-id net"
+    "bible:import": "cd scripts && .venv/bin/python import_bible.py --all",
+    "bible:import:kjv": "cd scripts && .venv/bin/python import_bible.py --translation-id kjv --source data/kjv.json --format json",
+    "bible:import:net": "cd scripts && .venv/bin/python import_bible.py --translation-id net --source data/NETBIBLE21.epub --format epub",
+    "bible:extract": "npm run bible:import:net"
   },
   "private": true
 }
