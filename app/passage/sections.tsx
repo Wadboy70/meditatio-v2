@@ -184,11 +184,10 @@ export default function DivideSectionsScreen() {
       if (!verse) return;
 
       setDraftSelection((prev) => {
-        if (prev.includes(passageVerseId)) {
-          return prev.filter((id) => id !== passageVerseId);
-        }
+        const nextIds = prev.includes(passageVerseId)
+          ? prev.filter((id) => id !== passageVerseId)
+          : [...prev, passageVerseId];
 
-        const nextIds = [...prev, passageVerseId];
         const orders = nextIds
           .map((id) => verseById.get(id)?.order)
           .filter((order): order is number => order !== undefined);
@@ -196,7 +195,7 @@ export default function DivideSectionsScreen() {
         if (!isContiguousOrders(orders)) {
           Alert.alert(
             'Select contiguous verses',
-            'Sections must be a continuous group of verses in the passage.',
+            'Sections must stay a continuous group. Unselect from either end, or clear and reselect.',
           );
           return prev;
         }
