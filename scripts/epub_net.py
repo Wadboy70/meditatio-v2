@@ -13,7 +13,7 @@ from xml.etree import ElementTree as ET
 from bs4 import BeautifulSoup, NavigableString, Tag, XMLParsedAsHTMLWarning
 
 from bible_db import VerseRecord
-from book_ids import lookup_book
+from book_ids import lookup_book, resolve_book
 
 warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
@@ -37,6 +37,8 @@ SKIP_HREF_PARTS = (
 )
 
 VERSE_LABEL_RE = re.compile(r"^(\d+):(\d+)$")
+VERSE_NUMBER_RE = re.compile(r"^(\d+)")
+EBIBLE_TITLE_RE = re.compile(r"^NET Bible\s+(.+)$", re.IGNORECASE)
 WHITESPACE_RE = re.compile(r"\s+")
 
 
@@ -101,8 +103,89 @@ def parse_book_name(soup: BeautifulSoup) -> str:
         match = re.match(r"NET Bible 2\.1\s+(.+)$", title_text)
         if match:
             return match.group(1)
+        # eBible / USFM-derived NET EPUB: "NET Bible Matthew"
+        match = EBIBLE_TITLE_RE.match(title_text)
+        if match and "2.1" not in title_text:
+            return match.group(1)
+
+    mt = soup.find("div", class_="mt")
+    if mt:
+        name = normalize_text(mt.get_text())
+        if name:
+            return name
 
     raise ValueError("Could not determine book name from chapter document")
+
+
+def is_ebible_document(html_content: str, soup: BeautifulSoup) -> bool:
+    """eBible engnet.epub: one book per file, chapter labels + bare verse numbers."""
+    if soup.find("div", class_="psalmlabel") is None:
+        return False
+    title = soup.find("title")
+    if title and re.search(r"NET Bible 2\.1", title.get_text(), re.IGNORECASE):
+        return False
+    return 'class="verse"' in html_content or "class='verse'" in html_content
+
+
+def extract_verses_from_ebible_book(html_content: str) -> tuple[str, list[tuple[int, int, str]]]:
+    """Parse eBible-style book XHTML (chapter labels + span.verse with verse-only numbers)."""
+    soup = BeautifulSoup(html_content, "lxml-xml")
+    book_name = parse_book_name(soup)
+    body = soup.body
+    if body is None:
+        return book_name, []
+
+    for node in body.find_all("sup"):
+        node.decompose()
+
+    verses: list[tuple[int, int, str]] = []
+    current_chapter: int | None = None
+    current_verse: int | None = None
+    current_parts: list[str] = []
+
+    def flush() -> None:
+        nonlocal current_chapter, current_verse, current_parts
+        if current_chapter is None or current_verse is None:
+            return
+        text = normalize_text(" ".join(part for part in current_parts if part.strip()))
+        if text:
+            verses.append((current_chapter, current_verse, text))
+        current_parts = []
+
+    def walk(root: Tag) -> None:
+        nonlocal current_chapter, current_verse, current_parts
+        for child in root.children:
+            if isinstance(child, NavigableString):
+                if current_verse is not None and str(child).strip():
+                    current_parts.append(str(child))
+                continue
+            if not isinstance(child, Tag):
+                continue
+            classes = child.get("class") or []
+            if child.name == "div" and "psalmlabel" in classes:
+                flush()
+                current_chapter = int(normalize_text(child.get_text()))
+                current_verse = None
+                continue
+            if child.name == "span" and "verse" in classes:
+                flush()
+                label = normalize_text(child.get_text()).replace("\xa0", " ")
+                match = VERSE_NUMBER_RE.match(label)
+                if not match or current_chapter is None:
+                    current_verse = None
+                    continue
+                current_verse = int(match.group(1))
+                continue
+            # Skip nav / headings that are not verse text containers
+            if child.name in {"ul", "nav"} or "tnav" in classes:
+                continue
+            if child.name == "div" and ("mt" in classes or "s" in classes):
+                continue
+            walk(child)
+
+    walk(body)
+    flush()
+    return book_name, verses
 
 
 def prepare_body(soup: BeautifulSoup) -> Tag:
@@ -181,11 +264,18 @@ def extract_epub(epub_path: Path, translation_id: str) -> list[VerseRecord]:
             if 'class="verse"' not in html_content and "class='verse'" not in html_content:
                 continue
 
-            book_name, chapter_verses = extract_verses_from_chapter(html_content)
+            soup = BeautifulSoup(html_content, "lxml-xml")
+            if is_ebible_document(html_content, soup):
+                book_name, chapter_verses = extract_verses_from_ebible_book(html_content)
+            else:
+                book_name, chapter_verses = extract_verses_from_chapter(html_content)
             if not chapter_verses:
                 continue
 
-            book = lookup_book(book_name)
+            try:
+                book = lookup_book(book_name)
+            except ValueError:
+                book = resolve_book(book_name)
             for chapter, verse, text in chapter_verses:
                 records.append(
                     VerseRecord(
