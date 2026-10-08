@@ -7,6 +7,10 @@ export type BibleTranslation = {
   sourceType: TranslationSourceType;
   language: string;
   offlineAvailable: boolean;
+  /** Short credit line for About / picker (required for copyrighted texts). */
+  attribution?: string;
+  /** Optional URL to link from attribution (e.g. NET → netbible.org). */
+  attributionUrl?: string;
 };
 
 export const TRANSLATIONS: readonly BibleTranslation[] = [
@@ -17,6 +21,9 @@ export const TRANSLATIONS: readonly BibleTranslation[] = [
     sourceType: 'local',
     language: 'en',
     offlineAvailable: true,
+    attribution:
+      'Scripture quoted by permission. Quotations designated (NET) are from the NET Bible® copyright ©1996, 2019 by Biblical Studies Press, L.L.C. http://netbible.com All rights reserved.',
+    attributionUrl: 'https://netbible.org',
   },
   {
     id: 'kjv',
@@ -24,7 +31,8 @@ export const TRANSLATIONS: readonly BibleTranslation[] = [
     abbreviation: 'KJV',
     sourceType: 'local',
     language: 'en',
-    offlineAvailable: false,
+    offlineAvailable: true,
+    attribution: 'Public domain (Oxford 1769 / Cambridge standard text).',
   },
 ] as const;
 

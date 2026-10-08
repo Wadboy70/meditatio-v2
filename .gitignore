@@ -41,7 +41,11 @@ yarn-error.*
 /ios
 /android
 
-# bible extraction script (local EPUB + venv + generated data)
+# bible import tooling (local sources + venv + generated data)
 scripts/data/*.epub
+scripts/data/*.json
+scripts/data/*.sqlite
+scripts/data/*.db
 scripts/.venv/
+scripts/__pycache__/
 assets/bible/*.sqlite
