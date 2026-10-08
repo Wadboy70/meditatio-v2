@@ -2,9 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 
 import {
   createPassageFromVerseRefs,
+  getPassageRecord,
   listPassages,
+  savePassageSections,
   type Passage,
   type PassageRecord,
+  type SectionDraft,
   type VerseSelectionRef,
 } from '@/lib/storage';
 
@@ -42,11 +45,26 @@ export function usePassages() {
     [refresh],
   );
 
+  const getRecord = useCallback(async (passageId: string): Promise<PassageRecord | null> => {
+    return getPassageRecord(passageId);
+  }, []);
+
+  const saveSections = useCallback(
+    async (passageId: string, drafts: SectionDraft[]): Promise<PassageRecord> => {
+      const record = await savePassageSections(passageId, drafts);
+      await refresh();
+      return record;
+    },
+    [refresh],
+  );
+
   return {
     passages,
     loading,
     error,
     refresh,
     createFromSelection,
+    getRecord,
+    saveSections,
   };
 }

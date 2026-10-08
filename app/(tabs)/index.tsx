@@ -83,9 +83,22 @@ export default function HomeScreen() {
                       : undefined
                   }
                   sectionColor={sectionColors[index % sectionColors.length]}
-                  onPress={() =>
-                    Alert.alert('Coming soon', 'Continue memorization will be available next.')
-                  }
+                  onPress={() => {
+                    if (
+                      passage.status === 'in_progress' &&
+                      passage.currentTaskId === 'divide_sections'
+                    ) {
+                      router.push({
+                        pathname: '/passage/sections',
+                        params: { passageId: passage.id },
+                      });
+                      return;
+                    }
+                    Alert.alert(
+                      'Coming soon',
+                      'Continue memorization will be available next.',
+                    );
+                  }}
                 />
               );
             })}

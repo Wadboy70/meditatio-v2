@@ -85,8 +85,15 @@ export default function PassageReaderScreen() {
     if (selection.length === 0) return;
     setCreating(true);
     try {
-      await createFromSelection(translationId, selectionBookId, selection);
-      router.replace('/(tabs)');
+      const record = await createFromSelection(translationId, selectionBookId, selection);
+      if (record.passage.currentTaskId === 'divide_sections') {
+        router.replace({
+          pathname: '/passage/sections',
+          params: { passageId: record.passage.id },
+        });
+      } else {
+        router.replace('/(tabs)');
+      }
     } catch (err) {
       Alert.alert('Could not create passage', err instanceof Error ? err.message : String(err));
     } finally {

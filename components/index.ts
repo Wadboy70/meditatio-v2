@@ -9,6 +9,7 @@
  * - BookChapterModal — book/chapter jump overlay
  * - VerseBlock — selectable verse row
  * - SelectionConfirmBar — create-passage confirm bar
+ * - PassageVerseList — passage snapshot verse list for sectioning
  *
  * Before building new UI, audit components/ui/ and components/shared/.
  * See .cursor/rules/frontend.mdc

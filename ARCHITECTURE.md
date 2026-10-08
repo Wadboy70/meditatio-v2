@@ -1,6 +1,6 @@
 # Meditatio — Architecture
 
-> Last updated: 2026-07-10
+> Last updated: 2026-10-08
 
 Scripture memorization app built with Expo, React Native, TypeScript, and NativeWind. Optional Supabase integration is stubbed but disabled until credentials are provided.
 
@@ -25,10 +25,11 @@ meditatio/
 │   │   ├── _layout.tsx       # Floating tab bar (Home, Profile)
 │   │   ├── index.tsx         # Home — saved passages list
 │   │   └── profile.tsx       # Profile tab
-│   └── passage/              # Passage selection flow
+│   └── passage/              # Passage selection + sectioning flow
 │       ├── _layout.tsx
 │       ├── new.tsx           # Translation picker
-│       └── reader.tsx        # Infinite-scroll reader + verse multi-select
+│       ├── reader.tsx        # Infinite-scroll reader + verse multi-select
+│       └── sections.tsx      # Divide passage into color-coded sections
 ├── components/
 │   ├── index.ts              # Root barrel — import shared UI via @/components
 │   ├── ui/                   # Design system primitives (placeholder)
@@ -39,13 +40,14 @@ meditatio/
 │       ├── BibleReader.tsx
 │       ├── BookChapterModal.tsx
 │       ├── VerseBlock.tsx
-│       └── SelectionConfirmBar.tsx
+│       ├── SelectionConfirmBar.tsx
+│       └── PassageVerseList.tsx
 ├── context/                  # React context providers (reserved)
 ├── hooks/
-│   └── usePassages.ts        # Load/create local passages
+│   └── usePassages.ts        # Load/create/update local passages
 ├── lib/
 │   ├── bible/                # BibleTextService, books, translations, SQLite provider
-│   ├── storage/              # AsyncStorage Passage + PassageVerse snapshots
+│   ├── storage/              # AsyncStorage Passage, PassageVerse, Section snapshots
 │   └── supabase.ts           # Supabase client (optional)
 ├── constants/
 │   └── tokens.ts             # Colors, radii, spacing, section palette
@@ -72,9 +74,10 @@ app/_layout.tsx          → Root Stack
   ├── (tabs)/_layout.tsx → Bottom tabs (custom FloatingTabBar)
   │     ├── index        → /          (Home — passages list)
   │     └── profile      → /profile   (Profile)
-  └── passage/           → Passage selection stack
-        ├── new          → /passage/new     (translation)
-        └── reader       → /passage/reader  (Bible reader)
+  └── passage/           → Passage flow stack
+        ├── new          → /passage/new       (translation)
+        ├── reader       → /passage/reader    (Bible reader)
+        └── sections     → /passage/sections  (divide into sections)
 ```
 
 - **Initial route:** `(tabs)` (see `unstable_settings` in `app/_layout.tsx`)
@@ -89,17 +92,27 @@ Per the [Meditatio Spec](https://docs.google.com/document/d/1yog0U4SkrWwxtr_vdey
 **Current:**
 - Loads passages from AsyncStorage via `hooks/usePassages.ts`
 - `PassageCard` + `EmptyState`; CTA opens `/passage/new`
-- Card press for continue/memorization is still deferred
+- Card press resumes by `currentTaskId`: `divide_sections` → `/passage/sections`; later tasks still stubbed
 
 ## Passage selection
 
-Flow: translation → infinite-scroll Bible reader → multi-verse select → persist `Passage` + `PassageVerse` snapshots.
+Flow: translation → infinite-scroll Bible reader → multi-verse select → persist `Passage` + `PassageVerse` snapshots → divide sections (when needed).
 
 - **Bible text:** `lib/bible/` (`BibleTextService` → SQLite `LocalSqliteProvider` on native)
 - **User passages:** `lib/storage/` (AsyncStorage). `PassageVerse` is the source of truth for selected verses; Passage `start*`/`end*` are bounding-span metadata only
 - **Reader UI:** `app/passage/reader.tsx` with `BibleReader`, `BookChapterModal`, `VerseBlock`, `SelectionConfirmBar`
+- After create: if `currentTaskId === 'divide_sections'`, navigate to `/passage/sections`; 1–2 verse passages auto-create one section and skip to `name_sections`
 
-**Deferred:** divide/name sections, section tasks, WordToken/Acronym, KJV data, passage resume.
+## Divide into sections
+
+Flow: show saved `PassageVerse` list → select contiguous verse groups → lock each as a colored `Section` → continue.
+
+- **Screen:** `app/passage/sections.tsx` with `PassageVerseList`, extended `VerseBlock` / `SelectionConfirmBar`
+- **Storage:** `Section` + `SectionVerse` on `PassageRecord`; `savePassageSections` advances `currentTaskId` to `name_sections`
+- **Colors:** `sectionColors` / `sectionColorMuted` from tokens, assigned by section order
+- **Skip:** passages with ≤2 verses never open this screen
+
+**Deferred:** name sections UI, section tasks, WordToken/Acronym, KJV data.
 
 ## Component library
 
@@ -112,8 +125,9 @@ Import shared UI from `@/components` (barrel at `components/index.ts`).
 | `EmptyState` | `components/shared/` | Reusable empty list placeholder |
 | `BibleReader` | `components/shared/` | Infinite-scroll chapter reader |
 | `BookChapterModal` | `components/shared/` | Book / chapter jump overlay |
-| `VerseBlock` | `components/shared/` | Selectable verse row |
-| `SelectionConfirmBar` | `components/shared/` | Create-passage confirm bar |
+| `VerseBlock` | `components/shared/` | Selectable verse row (optional section highlight) |
+| `SelectionConfirmBar` | `components/shared/` | Floating confirm bar (configurable CTA) |
+| `PassageVerseList` | `components/shared/` | Passage snapshot list for sectioning |
 | Primitives (future) | `components/ui/` | Button, Badge, Input, etc. |
 
 Before building new UI, audit `components/ui/` and `components/shared/`. See `.cursor/rules/frontend.mdc`.
@@ -123,7 +137,7 @@ Before building new UI, audit `components/ui/` and `components/shared/`. See `.c
 Source of truth: [`constants/tokens.ts`](constants/tokens.ts)
 
 - **Colors:** `background`, `surface`, `textPrimary`, `textSecondary`, `accent`, status colors
-- **Section palette:** `sectionColors[]` — assigned per memorization section (future)
+- **Section palette:** `sectionColors[]` + `sectionColorMuted()` — assigned per memorization section
 - **Radii / spacing / shadow / typography** — for StyleSheet and layout constants
 - **Tailwind:** `tailwind.config.js` mirrors token values as utility classes (`bg-surface`, `text-primary`, `rounded-xl`, etc.)
 - **Theme:** Light mode only for MVP
@@ -172,12 +186,13 @@ Client lives in `lib/supabase.ts`.
 
 | Feature | Suggested location |
 |---------|-------------------|
-| Passage CRUD + local storage | `lib/storage/`, `hooks/usePassages.ts` (AsyncStorage; implemented for create/list) |
+| Passage CRUD + local storage | `lib/storage/`, `hooks/usePassages.ts` (create/list/save sections) |
 | Bible text provider | `lib/bible/BibleTextService.ts`, `lib/bible/providers/LocalSqliteProvider` (`.native` / `.web`) |
 | Bundled Bible data | `assets/bible/{translationId}.sqlite` (generated via `npm run bible:extract`, gitignored) |
 | Passage selection reader | `app/passage/` (translation + reader; implemented) |
-| Memorization task flow | `app/passage/` continue screens (divide sections → tasks) |
-| Section colors assignment | Use `sectionColors` from tokens |
+| Divide sections | `app/passage/sections.tsx` (implemented) |
+| Memorization task flow | `app/passage/` continue screens (name sections → section tasks) |
+| Section colors assignment | `sectionColors` / `sectionColorMuted` from tokens (in use) |
 | User auth / cloud sync | `context/AuthContext.tsx`, Supabase |
 | User settings | `app/(tabs)/profile.tsx` |
 

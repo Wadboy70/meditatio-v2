@@ -29,6 +29,15 @@ export const sectionColors = [
   '#3B82F6', // blue
 ] as const;
 
+/** Soft fill for section-highlighted verses (≈18% opacity). */
+export function sectionColorMuted(colorKey: number): string {
+  const hex = sectionColors[colorKey % sectionColors.length];
+  const r = Number.parseInt(hex.slice(1, 3), 16);
+  const g = Number.parseInt(hex.slice(3, 5), 16);
+  const b = Number.parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, 0.18)`;
+}
+
 export const radii = {
   sm: 8,
   md: 12,
