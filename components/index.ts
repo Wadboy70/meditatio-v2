@@ -10,6 +10,8 @@
  * - VerseBlock — selectable verse row
  * - SelectionConfirmBar — create-passage confirm bar
  * - PassageVerseList — passage snapshot verse list for sectioning
+ * - PassageTaskProgress — passage-level task step bar
+ * - TextField — labeled text input primitive
  *
  * Before building new UI, audit components/ui/ and components/shared/.
  * See .cursor/rules/frontend.mdc

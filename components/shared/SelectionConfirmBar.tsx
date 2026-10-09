@@ -7,6 +7,7 @@ export type SelectionConfirmBarProps = {
   count: number;
   referencePreview?: string;
   loading?: boolean;
+  disabled?: boolean;
   confirmLabel?: string;
   countLabel?: string;
   /** When true, show the bar even if count is 0 (e.g. Continue after all assigned). */
@@ -18,6 +19,7 @@ export function SelectionConfirmBar({
   count,
   referencePreview,
   loading = false,
+  disabled = false,
   confirmLabel = 'Create passage',
   countLabel,
   alwaysVisible = false,
@@ -29,6 +31,7 @@ export function SelectionConfirmBar({
 
   const primaryLabel =
     countLabel ?? `${count} verse${count === 1 ? '' : 's'} selected`;
+  const isDisabled = loading || disabled;
 
   return (
     <View
@@ -48,9 +51,12 @@ export function SelectionConfirmBar({
         </View>
         <Pressable
           onPress={onConfirm}
-          disabled={loading}
+          disabled={isDisabled}
           className="rounded-full px-4 py-2.5"
-          style={{ backgroundColor: colors.accent, opacity: loading ? 0.7 : 1 }}>
+          style={{
+            backgroundColor: colors.accent,
+            opacity: isDisabled ? 0.45 : 1,
+          }}>
           {loading ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (

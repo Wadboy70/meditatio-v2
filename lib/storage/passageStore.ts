@@ -3,6 +3,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { sectionColors } from '@/constants/tokens';
 import { bibleTextService } from '@/lib/bible/BibleTextService';
 import { bibleVerseId, formatPassageReference, verseRefKey } from '@/lib/storage/reference';
+import {
+  allSectionsNamed,
+  assertNonEmptySectionTitle,
+} from '@/lib/storage/sectionNaming';
 import type {
   Passage,
   PassageRecord,
@@ -258,6 +262,85 @@ export async function savePassageSections(
     },
     sections,
     sectionVerses,
+  };
+
+  const next = [...records];
+  next[index] = updated;
+  await writeAll(next);
+  return updated;
+}
+
+export async function saveSectionTitle(
+  passageId: string,
+  sectionId: string,
+  title: string,
+): Promise<PassageRecord> {
+  const trimmed = assertNonEmptySectionTitle(title);
+
+  const records = await readAll();
+  const index = records.findIndex((record) => record.passage.id === passageId);
+  if (index < 0) {
+    throw new Error(`Passage not found: ${passageId}`);
+  }
+
+  const existing = records[index];
+  if (existing.passage.currentTaskId !== 'name_sections') {
+    throw new Error('This passage is not ready for naming sections.');
+  }
+
+  const sectionIndex = existing.sections.findIndex((section) => section.id === sectionId);
+  if (sectionIndex < 0) {
+    throw new Error(`Section not found: ${sectionId}`);
+  }
+
+  const now = new Date().toISOString();
+  const sections = existing.sections.map((section, i) =>
+    i === sectionIndex
+      ? { ...section, title: trimmed, updatedAt: now }
+      : section,
+  );
+
+  const updated: PassageRecord = {
+    ...existing,
+    passage: {
+      ...existing.passage,
+      updatedAt: now,
+    },
+    sections,
+  };
+
+  const next = [...records];
+  next[index] = updated;
+  await writeAll(next);
+  return updated;
+}
+
+export async function completeNameSections(passageId: string): Promise<PassageRecord> {
+  const records = await readAll();
+  const index = records.findIndex((record) => record.passage.id === passageId);
+  if (index < 0) {
+    throw new Error(`Passage not found: ${passageId}`);
+  }
+
+  const existing = records[index];
+  if (existing.passage.currentTaskId !== 'name_sections') {
+    throw new Error('This passage is not ready for naming sections.');
+  }
+  if (existing.sections.length === 0) {
+    throw new Error('This passage has no sections to name.');
+  }
+  if (!allSectionsNamed(existing.sections)) {
+    throw new Error('Name every section before continuing.');
+  }
+
+  const now = new Date().toISOString();
+  const updated: PassageRecord = {
+    ...existing,
+    passage: {
+      ...existing.passage,
+      currentTaskId: 'read_section',
+      updatedAt: now,
+    },
   };
 
   const next = [...records];

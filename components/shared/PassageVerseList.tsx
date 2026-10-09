@@ -9,7 +9,9 @@ export type PassageVerseListProps = {
   selectedKeys: Set<string>;
   /** Map of verseRefKey → muted highlight color for locked sections. */
   highlightByKey?: Map<string, string>;
-  onToggleVerse: (passageVerseId: string) => void;
+  /** When false, verses are display-only (no press handlers). Default true. */
+  interactive?: boolean;
+  onToggleVerse?: (passageVerseId: string) => void;
   contentBottomPadding?: number;
 };
 
@@ -22,6 +24,7 @@ export function PassageVerseList({
   bookId,
   selectedKeys,
   highlightByKey,
+  interactive = true,
   onToggleVerse,
   contentBottomPadding = 120,
 }: PassageVerseListProps) {
@@ -51,7 +54,11 @@ export function PassageVerseList({
               text={verse.text}
               selected={selectedKeys.has(key)}
               highlightColor={highlightByKey?.get(key)}
-              onPress={() => onToggleVerse(verse.id)}
+              onPress={
+                interactive && onToggleVerse
+                  ? () => onToggleVerse(verse.id)
+                  : undefined
+              }
             />
           </View>
         );

@@ -4,6 +4,4 @@
  * See .cursor/rules/frontend.mdc
  */
 
-// Primitives will be added in future phases.
-
-export {};
+export { TextField, type TextFieldProps } from './TextField';

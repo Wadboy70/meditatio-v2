@@ -33,6 +33,7 @@
     "babel-preset-expo": "^57.0.1",
     "prettier-plugin-tailwindcss": "^0.8.0",
     "tailwindcss": "^3.4.19",
+    "tsx": "^4.23.15",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -41,6 +42,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
+    "test": "tsx --test lib/storage/__tests__/**/*.test.ts",
     "bible:import": "cd scripts && .venv/bin/python import_bible.py --all",
     "bible:import:kjv": "cd scripts && .venv/bin/python import_bible.py --translation-id kjv --source data/kjv.json --format json",
     "bible:import:net": "cd scripts && .venv/bin/python import_bible.py --translation-id net --source data/NETBIBLE21.epub --format epub",
