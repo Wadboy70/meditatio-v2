@@ -91,6 +91,11 @@ export default function PassageReaderScreen() {
           pathname: '/passage/sections',
           params: { passageId: record.passage.id },
         });
+      } else if (record.passage.currentTaskId === 'name_sections') {
+        router.replace({
+          pathname: '/passage/name-sections',
+          params: { passageId: record.passage.id },
+        });
       } else {
         router.replace('/(tabs)');
       }

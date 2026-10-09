@@ -6,3 +6,8 @@ export { SelectionConfirmBar, type SelectionConfirmBarProps } from './SelectionC
 export { BookChapterModal, type BookChapterModalProps } from './BookChapterModal';
 export { BibleReader, type BibleReaderProps, type ChapterBlock } from './BibleReader';
 export { PassageVerseList, type PassageVerseListProps } from './PassageVerseList';
+export {
+  PassageTaskProgress,
+  type PassageTaskProgressProps,
+  type PassageTaskStep,
+} from './PassageTaskProgress';

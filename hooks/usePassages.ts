@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import {
+  completeNameSections,
   createPassageFromVerseRefs,
   getPassageRecord,
   listPassages,
   savePassageSections,
+  saveSectionTitle,
   type Passage,
   type PassageRecord,
   type SectionDraft,
@@ -58,6 +60,28 @@ export function usePassages() {
     [refresh],
   );
 
+  const saveSectionName = useCallback(
+    async (
+      passageId: string,
+      sectionId: string,
+      title: string,
+    ): Promise<PassageRecord> => {
+      const record = await saveSectionTitle(passageId, sectionId, title);
+      await refresh();
+      return record;
+    },
+    [refresh],
+  );
+
+  const finishNamingSections = useCallback(
+    async (passageId: string): Promise<PassageRecord> => {
+      const record = await completeNameSections(passageId);
+      await refresh();
+      return record;
+    },
+    [refresh],
+  );
+
   return {
     passages,
     loading,
@@ -66,5 +90,7 @@ export function usePassages() {
     createFromSelection,
     getRecord,
     saveSections,
+    saveSectionName,
+    finishNamingSections,
   };
 }

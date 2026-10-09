@@ -238,7 +238,10 @@ export default function DivideSectionsScreen() {
         passageVerseIds: section.passageVerseIds,
       }));
       await saveSections(record.passage.id, drafts);
-      router.replace('/(tabs)');
+      router.replace({
+        pathname: '/passage/name-sections',
+        params: { passageId: record.passage.id },
+      });
     } catch (err) {
       Alert.alert(
         'Could not save sections',
