@@ -10,11 +10,20 @@ import * as SQLite from 'expo-sqlite';
 import { getChapterCount as getStaticChapterCount } from '../books';
 import type { BibleProvider, Verse, VerseRef } from '../types';
 
-/** Bundled translation databases — generate via `npm run bible:import:*` before native runs. */
-const TRANSLATION_ASSETS: Record<string, number> = {
+/**
+ * Bundled translation databases — generate via `npm run bible:import:*`.
+ * Missing gitignored files resolve to an empty module (see metro.config.js).
+ */
+const RAW_TRANSLATION_ASSETS: Record<string, unknown> = {
   net: require('@/assets/bible/net.sqlite'),
   kjv: require('@/assets/bible/kjv.sqlite'),
 };
+
+const TRANSLATION_ASSETS: Record<string, number> = Object.fromEntries(
+  Object.entries(RAW_TRANSLATION_ASSETS).filter(
+    (entry): entry is [string, number] => typeof entry[1] === 'number',
+  ),
+);
 
 const DEVICE_BIBLE_DIR = `${documentDirectory}bible/`;
 
