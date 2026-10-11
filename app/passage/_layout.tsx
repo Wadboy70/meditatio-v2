@@ -7,6 +7,7 @@ export default function PassageLayout() {
       <Stack.Screen name="reader" />
       <Stack.Screen name="sections" />
       <Stack.Screen name="name-sections" />
+      <Stack.Screen name="read-section" />
     </Stack>
   );
 }
