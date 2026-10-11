@@ -1,6 +1,6 @@
 # Meditatio — Architecture
 
-> Last updated: 2026-10-09
+> Last updated: 2026-10-11
 
 Scripture memorization app built with Expo, React Native, TypeScript, and NativeWind. Optional Supabase integration is stubbed but disabled until credentials are provided.
 
@@ -25,12 +25,13 @@ meditatio/
 │   │   ├── _layout.tsx       # Floating tab bar (Home, Profile)
 │   │   ├── index.tsx         # Home — saved passages list
 │   │   └── profile.tsx       # Profile tab
-│   └── passage/              # Passage selection + sectioning + naming flow
+│   └── passage/              # Passage selection + sectioning + naming + read flow
 │       ├── _layout.tsx
 │       ├── new.tsx           # Translation picker
 │       ├── reader.tsx        # Infinite-scroll reader + verse multi-select
 │       ├── sections.tsx      # Divide passage into color-coded sections
-│       └── name-sections.tsx # Name each section one-by-one
+│       ├── name-sections.tsx # Name each section one-by-one
+│       └── read-section.tsx  # Read each section 5×, one verse at a time
 ├── components/
 │   ├── index.ts              # Root barrel — import shared UI via @/components
 │   ├── ui/                   # Design system primitives (TextField, …)
@@ -49,7 +50,7 @@ meditatio/
 │   └── usePassages.ts        # Load/create/update local passages
 ├── lib/
 │   ├── bible/                # BibleTextService, books, translations, SQLite provider
-│   ├── storage/              # AsyncStorage Passage, PassageVerse, Section snapshots
+│   ├── storage/              # AsyncStorage Passage, PassageVerse, Section, read progress
 │   └── supabase.ts           # Supabase client (optional)
 ├── constants/
 │   └── tokens.ts             # Colors, radii, spacing, section palette
@@ -83,7 +84,8 @@ app/_layout.tsx          → Root Stack
         ├── new            → /passage/new             (translation)
         ├── reader         → /passage/reader          (Bible reader)
         ├── sections       → /passage/sections        (divide into sections)
-        └── name-sections  → /passage/name-sections   (name each section)
+        ├── name-sections  → /passage/name-sections   (name each section)
+        └── read-section   → /passage/read-section    (read section 5×)
 ```
 
 - **Initial route:** `(tabs)` (see `unstable_settings` in `app/_layout.tsx`)
@@ -98,7 +100,7 @@ Per the [Meditatio Spec](https://docs.google.com/document/d/1yog0U4SkrWwxtr_vdey
 **Current:**
 - Loads passages from AsyncStorage via `hooks/usePassages.ts`
 - `PassageCard` + `EmptyState`; CTA opens `/passage/new`
-- Card press resumes by `currentTaskId`: `divide_sections` → `/passage/sections`; `name_sections` → `/passage/name-sections`; later tasks still stubbed
+- Card press resumes by `currentTaskId`: `divide_sections` → `/passage/sections`; `name_sections` → `/passage/name-sections`; `read_section` → `/passage/read-section`; `word_recall` (and later) still stubbed
 
 ## Passage selection
 
@@ -128,7 +130,18 @@ Flow: one section at a time — show that section’s scripture + text field for
 - **Resume:** first section with empty `title`; Home card opens this screen when `currentTaskId === 'name_sections'`
 - **Progress bar:** passage-level Select → Divide → Name (Divide marked skipped for ≤2-verse passages)
 
-**Deferred:** section tasks (read / word recall / stuck / acronym), WordToken/Acronym entities.
+## Read section
+
+Flow: one section at a time — show **one verse** with section color tint → advance through all verses for **5 rounds** → on the last verse of round 5, continue to Word Recall (stubbed).
+
+- **Screen:** `app/passage/read-section.tsx` with section-task `PassageTaskProgress` (Read → Recall → Stuck → Acronym), `VerseBlock`, `SelectionConfirmBar`
+- **CTAs:** Mid-section **Next verse**; last verse of rounds 1–4 **Next round**; last verse of round 5 **Continue** (completes section read)
+- **No skip.** Back confirms previous **verse** (including into the prior round) or previous **section**; at the start of the first section, Back returns Home
+- **Storage:** `SectionReadProgress` on `PassageRecord` (`currentRound`, `currentVerseIndex`, `completedRounds`, `completed`) plus `activeReadSectionId` for resume; helpers in `lib/storage/sectionReading.ts`; `advanceSectionRead` / `retreatSectionRead` / `moveToPreviousSectionRead` in `passageStore.ts`
+- **Advance task:** completing the active section’s 5th round sets `currentTaskId` to `word_recall` (Word Recall UI not built yet — Home shows Coming soon)
+- **Resume:** Home opens this screen when `currentTaskId === 'read_section'`; restores `activeReadSectionId` and saved round/verse
+
+**Deferred:** Word Recall / Review Stuck Words / Build Acronym screens, WordToken/Acronym entities, full Task entity graph.
 
 ## Bible data import
 
@@ -224,7 +237,8 @@ Client lives in `lib/supabase.ts`.
 | Passage selection reader | `app/passage/` (translation + reader; implemented) |
 | Divide sections | `app/passage/sections.tsx` (implemented) |
 | Name sections | `app/passage/name-sections.tsx` (implemented) |
-| Memorization task flow | `app/passage/` section tasks next (`read_section` stubbed on Home) |
+| Read section | `app/passage/read-section.tsx` (implemented); progress in `lib/storage/sectionReading.ts` |
+| Memorization task flow | Next: `word_recall` (stubbed on Home after read completes) |
 | Section colors assignment | `sectionColors` / `sectionColorMuted` from tokens (in use) |
 | User auth / cloud sync | `context/AuthContext.tsx`, Supabase |
 | User settings | `app/(tabs)/profile.tsx` |

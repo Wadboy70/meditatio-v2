@@ -7,12 +7,24 @@ import {
   allSectionsNamed,
   assertNonEmptySectionTitle,
 } from '@/lib/storage/sectionNaming';
+import {
+  advanceRead,
+  ensureAllReadProgress,
+  getReadProgress,
+  orderedSections,
+  previousSectionReadLanding,
+  readBackKind,
+  resolveActiveReadSectionId,
+  retreatRead,
+  sectionVerseCount,
+} from '@/lib/storage/sectionReading';
 import type {
   Passage,
   PassageRecord,
   PassageVerse,
   Section,
   SectionDraft,
+  SectionReadProgress,
   SectionVerse,
   VerseSelectionRef,
 } from '@/lib/storage/types';
@@ -24,11 +36,27 @@ function createId(prefix: string): string {
 }
 
 function normalizeRecord(raw: PassageRecord): PassageRecord {
+  const sections = Array.isArray(raw.sections) ? raw.sections : [];
+  const sectionVerses = Array.isArray(raw.sectionVerses) ? raw.sectionVerses : [];
+  const readProgress = ensureAllReadProgress(
+    sections,
+    Array.isArray(raw.readProgress) ? raw.readProgress : [],
+  );
   return {
     ...raw,
-    sections: Array.isArray(raw.sections) ? raw.sections : [],
-    sectionVerses: Array.isArray(raw.sectionVerses) ? raw.sectionVerses : [],
+    sections,
+    sectionVerses,
+    readProgress,
+    activeReadSectionId: raw.activeReadSectionId,
   };
+}
+
+function replaceReadProgress(
+  progress: SectionReadProgress[],
+  nextEntry: SectionReadProgress,
+): SectionReadProgress[] {
+  const others = progress.filter((entry) => entry.sectionId !== nextEntry.sectionId);
+  return [...others, nextEntry];
 }
 
 async function readAll(): Promise<PassageRecord[]> {
@@ -180,6 +208,7 @@ export async function createPassageFromVerseRefs(
     verses: passageVerses,
     sections,
     sectionVerses,
+    readProgress: ensureAllReadProgress(sections, []),
   };
   const existing = await readAll();
   await writeAll([record, ...existing]);
@@ -262,6 +291,8 @@ export async function savePassageSections(
     },
     sections,
     sectionVerses,
+    readProgress: ensureAllReadProgress(sections, []),
+    activeReadSectionId: undefined,
   };
 
   const next = [...records];
@@ -334,6 +365,8 @@ export async function completeNameSections(passageId: string): Promise<PassageRe
   }
 
   const now = new Date().toISOString();
+  const readProgress = ensureAllReadProgress(existing.sections, []);
+  const firstSectionId = orderedSections(existing.sections)[0]?.id;
   const updated: PassageRecord = {
     ...existing,
     passage: {
@@ -341,10 +374,176 @@ export async function completeNameSections(passageId: string): Promise<PassageRe
       currentTaskId: 'read_section',
       updatedAt: now,
     },
+    readProgress,
+    activeReadSectionId: firstSectionId,
   };
 
   const next = [...records];
   next[index] = updated;
   await writeAll(next);
   return updated;
+}
+
+async function loadMutableRecord(passageId: string): Promise<{
+  records: PassageRecord[];
+  index: number;
+  existing: PassageRecord;
+}> {
+  const records = await readAll();
+  const index = records.findIndex((record) => record.passage.id === passageId);
+  if (index < 0) {
+    throw new Error(`Passage not found: ${passageId}`);
+  }
+  return { records, index, existing: records[index] };
+}
+
+function assertReadSectionTask(record: PassageRecord): void {
+  if (record.passage.currentTaskId !== 'read_section') {
+    throw new Error('This passage is not ready for reading sections.');
+  }
+}
+
+export async function advanceSectionRead(
+  passageId: string,
+  sectionId: string,
+): Promise<PassageRecord> {
+  const { records, index, existing } = await loadMutableRecord(passageId);
+  assertReadSectionTask(existing);
+
+  const verseCount = sectionVerseCount(existing, sectionId);
+  if (verseCount <= 0) {
+    throw new Error('Section has no verses to read.');
+  }
+  if (!existing.sections.some((section) => section.id === sectionId)) {
+    throw new Error(`Section not found: ${sectionId}`);
+  }
+
+  const progress = ensureAllReadProgress(existing.sections, existing.readProgress);
+  const current = getReadProgress(progress, sectionId);
+  const result = advanceRead(current, verseCount);
+  const now = new Date().toISOString();
+  const readProgress = replaceReadProgress(progress, result.progress);
+
+  const updated: PassageRecord =
+    result.type === 'section_complete'
+      ? {
+          ...existing,
+          passage: {
+            ...existing.passage,
+            currentTaskId: 'word_recall',
+            updatedAt: now,
+          },
+          readProgress,
+          activeReadSectionId: sectionId,
+        }
+      : {
+          ...existing,
+          passage: {
+            ...existing.passage,
+            updatedAt: now,
+          },
+          readProgress,
+          activeReadSectionId: sectionId,
+        };
+
+  const next = [...records];
+  next[index] = updated;
+  await writeAll(next);
+  return updated;
+}
+
+export async function retreatSectionRead(
+  passageId: string,
+  sectionId: string,
+): Promise<PassageRecord> {
+  const { records, index, existing } = await loadMutableRecord(passageId);
+  assertReadSectionTask(existing);
+
+  const ordered = orderedSections(existing.sections);
+  const sectionIndex = ordered.findIndex((section) => section.id === sectionId);
+  if (sectionIndex < 0) {
+    throw new Error(`Section not found: ${sectionId}`);
+  }
+
+  const verseCount = sectionVerseCount(existing, sectionId);
+  if (verseCount <= 0) {
+    throw new Error('Section has no verses to read.');
+  }
+
+  const progress = ensureAllReadProgress(existing.sections, existing.readProgress);
+  const current = getReadProgress(progress, sectionId);
+  const kind = readBackKind(current, sectionIndex);
+  if (kind !== 'previous_verse') {
+    throw new Error('Cannot retreat verse from the start of this section.');
+  }
+
+  const nextProgress = retreatRead(current, verseCount);
+  const now = new Date().toISOString();
+  const updated: PassageRecord = {
+    ...existing,
+    passage: {
+      ...existing.passage,
+      updatedAt: now,
+    },
+    readProgress: replaceReadProgress(progress, nextProgress),
+    activeReadSectionId: sectionId,
+  };
+
+  const next = [...records];
+  next[index] = updated;
+  await writeAll(next);
+  return updated;
+}
+
+export async function moveToPreviousSectionRead(
+  passageId: string,
+  sectionId: string,
+): Promise<PassageRecord> {
+  const { records, index, existing } = await loadMutableRecord(passageId);
+  assertReadSectionTask(existing);
+
+  const ordered = orderedSections(existing.sections);
+  const sectionIndex = ordered.findIndex((section) => section.id === sectionId);
+  if (sectionIndex < 0) {
+    throw new Error(`Section not found: ${sectionId}`);
+  }
+  if (sectionIndex === 0) {
+    throw new Error('Already at the first section.');
+  }
+
+  const progress = ensureAllReadProgress(existing.sections, existing.readProgress);
+  const current = getReadProgress(progress, sectionId);
+  const kind = readBackKind(current, sectionIndex);
+  if (kind !== 'previous_section') {
+    throw new Error('Retreat within this section before leaving it.');
+  }
+
+  const previous = ordered[sectionIndex - 1];
+  const previousVerseCount = sectionVerseCount(existing, previous.id);
+  const previousProgress = previousSectionReadLanding(
+    getReadProgress(progress, previous.id),
+    previousVerseCount,
+  );
+
+  const now = new Date().toISOString();
+  const updated: PassageRecord = {
+    ...existing,
+    passage: {
+      ...existing.passage,
+      updatedAt: now,
+    },
+    readProgress: replaceReadProgress(progress, previousProgress),
+    activeReadSectionId: previous.id,
+  };
+
+  const next = [...records];
+  next[index] = updated;
+  await writeAll(next);
+  return updated;
+}
+
+export function getActiveReadSection(record: PassageRecord): Section | null {
+  const activeId = resolveActiveReadSectionId(record);
+  if (!activeId) return null;
+  return record.sections.find((section) => section.id === activeId) ?? null;
 }

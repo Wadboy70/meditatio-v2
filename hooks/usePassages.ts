@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import {
+  advanceSectionRead,
   completeNameSections,
   createPassageFromVerseRefs,
   getPassageRecord,
   listPassages,
+  moveToPreviousSectionRead,
+  retreatSectionRead,
   savePassageSections,
   saveSectionTitle,
   type Passage,
@@ -82,6 +85,33 @@ export function usePassages() {
     [refresh],
   );
 
+  const advanceRead = useCallback(
+    async (passageId: string, sectionId: string): Promise<PassageRecord> => {
+      const record = await advanceSectionRead(passageId, sectionId);
+      await refresh();
+      return record;
+    },
+    [refresh],
+  );
+
+  const retreatRead = useCallback(
+    async (passageId: string, sectionId: string): Promise<PassageRecord> => {
+      const record = await retreatSectionRead(passageId, sectionId);
+      await refresh();
+      return record;
+    },
+    [refresh],
+  );
+
+  const goToPreviousSectionRead = useCallback(
+    async (passageId: string, sectionId: string): Promise<PassageRecord> => {
+      const record = await moveToPreviousSectionRead(passageId, sectionId);
+      await refresh();
+      return record;
+    },
+    [refresh],
+  );
+
   return {
     passages,
     loading,
@@ -92,5 +122,8 @@ export function usePassages() {
     saveSections,
     saveSectionName,
     finishNamingSections,
+    advanceRead,
+    retreatRead,
+    goToPreviousSectionRead,
   };
 }

@@ -17,6 +17,8 @@ function taskHint(currentTaskId: string): string {
       return 'Next: Name sections';
     case 'read_section':
       return 'Next: Read section';
+    case 'word_recall':
+      return 'Next: Word recall';
     default:
       return 'In progress';
   }
@@ -102,6 +104,16 @@ export default function HomeScreen() {
                     ) {
                       router.push({
                         pathname: '/passage/name-sections',
+                        params: { passageId: passage.id },
+                      });
+                      return;
+                    }
+                    if (
+                      passage.status === 'in_progress' &&
+                      passage.currentTaskId === 'read_section'
+                    ) {
+                      router.push({
+                        pathname: '/passage/read-section',
                         params: { passageId: passage.id },
                       });
                       return;
