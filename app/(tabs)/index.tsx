@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback } from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmptyState, PassageCard } from '@/components';
@@ -8,6 +8,7 @@ import { layout, sectionColors } from '@/constants/tokens';
 import { usePassages } from '@/hooks/usePassages';
 import { getBook } from '@/lib/bible/books';
 import { getTranslation } from '@/lib/bible/translations';
+import { alertMessage } from '@/lib/ui/confirm';
 
 function taskHint(currentTaskId: string): string {
   switch (currentTaskId) {
@@ -118,7 +119,7 @@ export default function HomeScreen() {
                       });
                       return;
                     }
-                    Alert.alert(
+                    alertMessage(
                       'Coming soon',
                       'Continue memorization will be available next.',
                     );

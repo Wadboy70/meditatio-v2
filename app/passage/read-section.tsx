@@ -2,7 +2,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   Text,
@@ -32,6 +31,7 @@ import {
   type Section,
   type VerseSelectionRef,
 } from '@/lib/storage';
+import { alertMessage, confirmAction } from '@/lib/ui/confirm';
 
 const SECTION_TASK_STEPS = [
   { key: 'read_section', label: 'Read' },
@@ -83,9 +83,8 @@ export default function ReadSectionScreen() {
         const next = await getRecord(passageId);
         if (cancelled) return;
         if (!next) {
-          Alert.alert('Passage not found', 'This passage could not be loaded.', [
-            { text: 'OK', onPress: () => router.replace('/(tabs)') },
-          ]);
+          alertMessage('Passage not found', 'This passage could not be loaded.');
+          router.replace('/(tabs)');
           return;
         }
         if (next.passage.currentTaskId !== 'read_section') {
@@ -93,19 +92,18 @@ export default function ReadSectionScreen() {
           return;
         }
         if (next.sections.length === 0) {
-          Alert.alert('No sections', 'Divide this passage into sections first.', [
-            { text: 'OK', onPress: () => router.replace('/(tabs)') },
-          ]);
+          alertMessage('No sections', 'Divide this passage into sections first.');
+          router.replace('/(tabs)');
           return;
         }
         setRecord(next);
       } catch (err) {
         if (!cancelled) {
-          Alert.alert(
+          alertMessage(
             'Could not load passage',
             err instanceof Error ? err.message : String(err),
-            [{ text: 'OK', onPress: () => router.replace('/(tabs)') }],
           );
+          router.replace('/(tabs)');
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -197,7 +195,7 @@ export default function ReadSectionScreen() {
       const updated = await advanceRead(record.passage.id, currentSection.id);
       applyRecord(updated);
     } catch (err) {
-      Alert.alert(
+      alertMessage(
         'Could not save progress',
         err instanceof Error ? err.message : String(err),
       );
@@ -216,68 +214,53 @@ export default function ReadSectionScreen() {
       return;
     }
 
-    if (kind === 'previous_verse') {
-      Alert.alert(
-        'Go to previous verse?',
-        'You will move back to the previous verse in this section.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Go back',
-            onPress: () => {
-              void (async () => {
-                setSaving(true);
-                try {
-                  const updated = await retreatRead(
-                    record.passage.id,
-                    currentSection.id,
-                  );
-                  applyRecord(updated);
-                } catch (err) {
-                  Alert.alert(
-                    'Could not go back',
-                    err instanceof Error ? err.message : String(err),
-                  );
-                } finally {
-                  setSaving(false);
-                }
-              })();
-            },
-          },
-        ],
-      );
-      return;
-    }
+    void (async () => {
+      if (kind === 'previous_verse') {
+        const confirmed = await confirmAction(
+          'Go to previous verse?',
+          'You will move back to the previous verse in this section.',
+          'Go back',
+        );
+        if (!confirmed) return;
 
-    Alert.alert(
-      'Go to previous section?',
-      "You will leave this section and return to the previous section's reading progress.",
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Go back',
-          onPress: () => {
-            void (async () => {
-              setSaving(true);
-              try {
-                const updated = await goToPreviousSectionRead(
-                  record.passage.id,
-                  currentSection.id,
-                );
-                applyRecord(updated);
-              } catch (err) {
-                Alert.alert(
-                  'Could not go back',
-                  err instanceof Error ? err.message : String(err),
-                );
-              } finally {
-                setSaving(false);
-              }
-            })();
-          },
-        },
-      ],
-    );
+        setSaving(true);
+        try {
+          const updated = await retreatRead(record.passage.id, currentSection.id);
+          applyRecord(updated);
+        } catch (err) {
+          alertMessage(
+            'Could not go back',
+            err instanceof Error ? err.message : String(err),
+          );
+        } finally {
+          setSaving(false);
+        }
+        return;
+      }
+
+      const confirmed = await confirmAction(
+        'Go to previous section?',
+        "You will leave this section and return to the previous section's reading progress.",
+        'Go back',
+      );
+      if (!confirmed) return;
+
+      setSaving(true);
+      try {
+        const updated = await goToPreviousSectionRead(
+          record.passage.id,
+          currentSection.id,
+        );
+        applyRecord(updated);
+      } catch (err) {
+        alertMessage(
+          'Could not go back',
+          err instanceof Error ? err.message : String(err),
+        );
+      } finally {
+        setSaving(false);
+      }
+    })();
   }, [
     applyRecord,
     currentSection,
